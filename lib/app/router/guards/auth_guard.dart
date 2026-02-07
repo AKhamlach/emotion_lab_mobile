@@ -1,18 +1,31 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
-/// Provides auth state for route guards.
-///
-/// Uses mock boolean flags during UI-first development.
-/// Will be replaced by AuthBloc in Phase 9.
+import '../../../features/auth/bloc/auth_bloc.dart';
+
+/// Bridges [AuthBloc] state into a [ChangeNotifier] for GoRouter's
+/// `refreshListenable`.
 class AuthGuard extends ChangeNotifier {
+  AuthGuard({required AuthBloc authBloc}) : _authBloc = authBloc {
+    _subscription = _authBloc.stream.listen((state) {
+      final authenticated = state is Authenticated;
+      if (_isAuthenticated != authenticated) {
+        _isAuthenticated = authenticated;
+        notifyListeners();
+      }
+    });
+  }
+
+  final AuthBloc _authBloc;
+  late final StreamSubscription<AuthState> _subscription;
   bool _isAuthenticated = false;
 
   bool get isAuthenticated => _isAuthenticated;
 
-  set isAuthenticated(bool value) {
-    if (_isAuthenticated != value) {
-      _isAuthenticated = value;
-      notifyListeners();
-    }
+  @override
+  void dispose() {
+    _subscription.cancel();
+    super.dispose();
   }
 }

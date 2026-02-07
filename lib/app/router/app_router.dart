@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../features/auth/bloc/auth_bloc.dart';
 import '../../features/auth/presentation/screens/forgot_password_screen.dart';
 import '../../features/auth/presentation/screens/login_screen.dart';
 import '../../features/auth/presentation/screens/register_screen.dart';
@@ -10,6 +11,7 @@ import '../../features/buddy/presentation/screens/buddy_profile_screen.dart';
 import '../../features/chatbot/presentation/screens/chat_screen.dart';
 import '../../features/gamification/presentation/screens/achievements_screen.dart';
 import '../../features/home/presentation/screens/home_screen.dart';
+import '../../features/onboarding/bloc/onboarding_bloc.dart';
 import '../../features/onboarding/presentation/screens/onboarding_complete_screen.dart';
 import '../../features/onboarding/presentation/screens/question_screen.dart';
 import '../../features/onboarding/presentation/screens/welcome_screen.dart';
@@ -25,10 +27,10 @@ import 'route_names.dart';
 
 class AppRouter {
   AppRouter({
-    AuthGuard? authGuard,
-    OnboardingGuard? onboardingGuard,
-  })  : _authGuard = authGuard ?? AuthGuard(),
-        _onboardingGuard = onboardingGuard ?? OnboardingGuard();
+    required AuthBloc authBloc,
+    required OnboardingBloc onboardingBloc,
+  })  : _authGuard = AuthGuard(authBloc: authBloc),
+        _onboardingGuard = OnboardingGuard(onboardingBloc: onboardingBloc);
 
   final AuthGuard _authGuard;
   final OnboardingGuard _onboardingGuard;
