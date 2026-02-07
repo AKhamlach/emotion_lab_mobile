@@ -12,8 +12,8 @@ enum BadgeCategory {
   final String label;
 }
 
-class Badge extends Equatable {
-  const Badge({
+class AppBadge extends Equatable {
+  const AppBadge({
     required this.id,
     required this.name,
     required this.description,
@@ -31,7 +31,7 @@ class Badge extends Equatable {
   final bool isEarned;
   final DateTime? earnedAt;
 
-  Badge copyWith({
+  AppBadge copyWith({
     String? id,
     String? name,
     String? description,
@@ -40,7 +40,7 @@ class Badge extends Equatable {
     bool? isEarned,
     DateTime? earnedAt,
   }) {
-    return Badge(
+    return AppBadge(
       id: id ?? this.id,
       name: name ?? this.name,
       description: description ?? this.description,

@@ -17,7 +17,7 @@ class GamificationStats extends Equatable {
 
   /// Value between 0.0 and 1.0 representing progress to next level.
   final double levelProgress;
-  final List<Badge> earnedBadges;
+  final List<AppBadge> earnedBadges;
 
   int get totalBadges => earnedBadges.length;
 
@@ -26,7 +26,7 @@ class GamificationStats extends Equatable {
     int? streak,
     int? level,
     double? levelProgress,
-    List<Badge>? earnedBadges,
+    List<AppBadge>? earnedBadges,
   }) {
     return GamificationStats(
       points: points ?? this.points,
