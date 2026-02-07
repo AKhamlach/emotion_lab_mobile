@@ -47,6 +47,7 @@ lib/
     mock_data/                      # mock_questions, mock_messages, mock_buddies, mock_badges, mock_user_profile
   features/
     splash/presentation/screens/
+    auth/presentation/{screens,widgets}/
     onboarding/presentation/{screens,widgets}/
     home/presentation/{screens,widgets}/
     chatbot/presentation/{screens,widgets}/
@@ -73,12 +74,16 @@ lib/
 ### 1.5 — GoRouter Navigation
 - `route_names.dart` — All named route constants
 - `app_router.dart`:
-  - `/splash` (initial), `/welcome`, `/onboarding`, `/onboarding/complete`
+  - `/splash` (initial)
+  - `/login`, `/register` (unauthenticated routes)
+  - `/welcome`, `/onboarding`, `/onboarding/complete` (first-time user flow)
   - `ShellRoute` with `MainShellScreen` for bottom nav tabs:
     - `/home`, `/chat`, `/buddy`, `/settings`
   - Sub-routes: `/buddy/:id/chat`, `/buddy/:id/profile`, `/settings/privacy`, `/settings/about`
   - `/emergency` (top-level, always accessible)
   - `/achievements` accessible from home
+  - `/forgot-password` (unauthenticated)
+  - Guards: `auth_guard` redirects unauthenticated users to `/login`, `onboarding_guard` redirects first-time users to `/welcome`
   - Guards use mock boolean flags (replaced by BLoC in Phase 9)
 
 ### 1.6 — App Entry Point
@@ -97,6 +102,7 @@ All use `const` constructors, `AppColors`/`AppDimensions` for styling, `Semantic
 **Animations**: `CelebrationAnimation`, `FadeSlideTransition`, `PulseAnimation`
 
 ### 1.8 — Data Models
+- `AuthUser` (id, email, pseudonym, createdAt, isEmailVerified)
 - `PsychometricQuestion` (id, text, category, type, options) + `PsychometricAnswer`
 - `UserProfile` (pseudonym, personality traits, work habits, stress triggers, onboardingComplete)
 - `ChatMessage` (content, sender enum, timestamp, isDistressDetected)
@@ -113,18 +119,40 @@ All use `const` constructors, `AppColors`/`AppDimensions` for styling, `Semantic
 
 ---
 
-## Phase 2: Onboarding UI
+## Phase 2: Authentication & Onboarding UI
+
+### User Flow
+```
+Splash → (not logged in?) → Login/Register → (first time?) → Welcome → Onboarding → Complete → Home
+Splash → (logged in, onboarding done?) → Home
+Splash → (logged in, onboarding NOT done?) → Welcome → Onboarding → Complete → Home
+```
 
 ### 2.1 — Splash Screen
-`splash_screen.dart` — Logo fade-in, tagline, auto-navigate after 2s
+`splash_screen.dart` — Logo fade-in, tagline, auto-navigate after 2s (checks auth state to decide next route)
 
-### 2.2 — Welcome Screen
+### 2.2 — Login Screen
+`login_screen.dart` — App logo, email field, password field (with visibility toggle), "Log In" primary button, "Forgot Password?" text button, divider with "OR", social login buttons (Google + Apple, mocked), "Don't have an account? Sign Up" link, form validation (email format, password min length)
+
+### 2.3 — Register Screen
+`register_screen.dart` — App logo, email field, password field + confirm password field (with visibility toggles), "Create Account" primary button, divider with "OR", social login buttons (Google + Apple, mocked), "Already have an account? Log In" link, form validation, terms & privacy links
+
+### 2.4 — Forgot Password Screen
+`forgot_password_screen.dart` — Back arrow, email field, "Send Reset Link" button, success state with "Check your inbox" message
+
+### 2.5 — Auth Widgets
+- `auth_header.dart` — Logo + title + subtitle (reused across login/register/forgot)
+- `social_login_buttons.dart` — Google & Apple sign-in buttons (mocked, styled)
+- `auth_form_field.dart` — Styled TextFormField with label, error display, optional suffix (visibility toggle)
+- `auth_divider.dart` — Horizontal divider with centered "OR" text
+
+### 2.6 — Welcome Screen
 `welcome_screen.dart` — Illustration placeholder, warm welcome copy, "Get Started" button, "~3 minutes" subtitle, no skip
 
-### 2.3 — Question Screen (Typeform Flow)
+### 2.7 — Question Screen (Typeform Flow)
 `question_screen.dart` — `PageView` with `NeverScrollableScrollPhysics`, one question at a time, `ProgressBar` at top, renders answer widget by `QuestionType` (singleChoice/multiChoice/slider/freeText), "Next" enabled only when answered, "Back" on all except first, category header
 
-### 2.4 — Answer Widgets
+### 2.8 — Answer Widgets
 - `question_card.dart` — Question text + category label + emoji
 - `answer_option_tile.dart` — Tappable tile with selection animation
 - `slider_answer.dart` — Labeled slider with min/max
@@ -132,7 +160,7 @@ All use `const` constructors, `AppColors`/`AppDimensions` for styling, `Semantic
 - `progress_dots.dart` — Dot row alternative progress indicator
 - `onboarding_page_transition.dart` — Custom slide+fade transition
 
-### 2.5 — Onboarding Complete Screen
+### 2.9 — Onboarding Complete Screen
 `onboarding_complete_screen.dart` — Confetti celebration, "You're all set!", pseudonym reveal, "Enter Emotion Lab" button
 
 ---
@@ -208,11 +236,12 @@ All use `const` constructors, `AppColors`/`AppDimensions` for styling, `Semantic
 ## Phase 7: Settings & Profile UI
 
 ### 7.1 — Settings Screen
-`settings_screen.dart` — Header card (pseudonym + level), grouped list: Appearance, Notifications, Privacy, Emergency, About, Delete Account
+`settings_screen.dart` — Header card (pseudonym + level + email), grouped list: Appearance, Notifications, Privacy, Emergency, About, Log Out, Delete Account
 
 ### 7.2 — Settings Components
 - `theme_toggle_tile.dart` — Light/Dark/System segmented selector
-- `delete_account_tile.dart` — Red text, multi-step confirmation
+- `logout_tile.dart` — Confirmation dialog, clears tokens, navigates to /login
+- `delete_account_tile.dart` — Red text, multi-step confirmation (password re-entry), clears all data
 - `notification_toggle.dart` — SwitchListTiles for reminders, buddy messages, achievements
 
 ### 7.3 — Privacy Info Screen
@@ -262,9 +291,12 @@ Events: `StatsLoaded`, `PointsEarned`, `StreakUpdated`, `BadgeEarned`
 State: stats, showCelebration, newBadge
 
 ### 9.7 — Auth BLoC + Router Guards
-Events: `AuthCheckRequested`, `LogoutRequested`, `AccountDeleted`
-State: isAuthenticated, isOnboardingComplete, userProfile
-Wire into GoRouter redirect logic with `GoRouterRefreshStream`
+Events: `AuthCheckRequested`, `LoginRequested`, `RegisterRequested`, `LogoutRequested`, `AccountDeleted`, `ForgotPasswordRequested`, `SocialLoginRequested(provider)`
+State: AuthState (initial, loading, authenticated, unauthenticated, error) with AuthUser, isOnboardingComplete, errorMessage
+- On login/register success: store token via SecureStorageService, check onboarding status
+- On logout: clear token, navigate to /login
+- On token expiry: auto-logout
+- Wire into GoRouter redirect logic with `GoRouterRefreshStream`
 
 ### 9.8 — Storage Services
 - `secure_storage_service.dart` — Wrapper for flutter_secure_storage (tokens)
@@ -275,12 +307,13 @@ Wire into GoRouter redirect logic with `GoRouterRefreshStream`
 ## Phase 10: Testing
 
 ### 10.1 — Unit Tests (BLoC + utilities)
-- `distress_detector_test.dart`, `onboarding_bloc_test.dart`, `chat_bloc_test.dart`, `buddy_bloc_test.dart`, `gamification_bloc_test.dart`, `theme_bloc_test.dart`
+- `auth_bloc_test.dart`, `distress_detector_test.dart`, `onboarding_bloc_test.dart`, `chat_bloc_test.dart`, `buddy_bloc_test.dart`, `gamification_bloc_test.dart`, `theme_bloc_test.dart`
 
 ### 10.2 — Widget Tests (key screens + components)
-- `primary_button_test.dart`, `emergency_help_card_test.dart`, `progress_bar_test.dart`, `question_screen_test.dart`, `welcome_screen_test.dart`, `message_bubble_test.dart`, `chat_input_bar_test.dart`, `buddy_discovery_screen_test.dart`
+- `login_screen_test.dart`, `register_screen_test.dart`, `primary_button_test.dart`, `emergency_help_card_test.dart`, `progress_bar_test.dart`, `question_screen_test.dart`, `welcome_screen_test.dart`, `message_bubble_test.dart`, `chat_input_bar_test.dart`, `buddy_discovery_screen_test.dart`
 
 ### 10.3 — Integration Tests
+- `auth_flow_test.dart` — Login → (first time) → onboarding → home; Login → (returning) → home; Logout → login
 - `onboarding_flow_test.dart` — Welcome → all questions → complete → home
 - `chat_flow_test.dart` — Send message → typing → response → distress keyword → emergency overlay
 - `navigation_test.dart` — Tab switching, guard redirects, deep links
@@ -295,7 +328,7 @@ Replace counter smoke test with `EmotionLabApp` smoke test
 ```
 Phase 1 (Foundation) ──────────────────────────────────────────────────┐
   ↓                                                                    │
-Phase 2 (Onboarding UI) ← gates app entry                             │
+Phase 2 (Auth + Onboarding UI) ← gates app entry                      │
   ↓                                                                    │
 Phase 3 (Shell + Home) ← hosts all features                           │
   ↓                                                                    │
@@ -319,6 +352,9 @@ After each phase:
 3. `flutter run` — app launches and screens render correctly
 
 Final verification:
+- Login → first-time onboarding → home (end-to-end)
+- Login → returning user → home (skip onboarding)
+- Logout → redirected to login
 - Complete onboarding flow end-to-end in the running app
 - Navigate all tabs and sub-screens
 - Toggle light/dark theme

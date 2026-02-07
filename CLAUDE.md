@@ -53,11 +53,20 @@ Per `inital-requirement.md`, the app should be built with:
 
 ## Key Features to Implement
 
-1. **Psychometric onboarding** — mandatory, one-question-per-screen (Typeform-style), progressive saving, local draft persistence
-2. **AI chatbot** — personality-aware responses, distress keyword detection with emergency UI, typing indicator, rate limiting
-3. **Buddy matching** — anonymized profiles with pseudonyms, mutual accept, real-time chat, block/report
-4. **Gamification** — streaks, points, badges; light/positive tone, no leaderboards
-5. **Emotional safety** — distress detection across all inputs, emergency help card always accessible
+1. **Authentication** — email/password login & registration, Google & Apple social login (mocked), forgot password flow, secure token storage, auto-logout on token expiry
+2. **Psychometric onboarding** — mandatory on first login, one-question-per-screen (Typeform-style), progressive saving, local draft persistence
+3. **AI chatbot** — personality-aware responses, distress keyword detection with emergency UI, typing indicator, rate limiting
+4. **Buddy matching** — anonymized profiles with pseudonyms, mutual accept, real-time chat, block/report
+5. **Gamification** — streaks, points, badges; light/positive tone, no leaderboards
+6. **Emotional safety** — distress detection across all inputs, emergency help card always accessible
+
+## App Flow
+
+```
+Splash → (not logged in?) → Login/Register → (first time?) → Welcome → Onboarding → Home
+Splash → (logged in + onboarding done) → Home
+Splash → (logged in + onboarding NOT done) → Welcome → Onboarding → Home
+```
 
 ## SDK Requirements
 
